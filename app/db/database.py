@@ -1,10 +1,11 @@
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from sqlalchemy import create_engine
+from app.core.config import settings
 
 class Base(DeclarativeBase):
     pass
 
-DATABASE_URL = "mysql+pymysql://root:1234@localhost:3306/research_management"
+DATABASE_URL = settings.DATABASE_URL
 
 engine = create_engine(DATABASE_URL)
 

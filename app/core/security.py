@@ -1,6 +1,8 @@
 import bcrypt
 import jwt
 from datetime import datetime, timezone, timedelta
+from fastapi import HTTPException, status
+
 from app.core.config import settings
 
 
@@ -14,3 +16,34 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+
+
+def create_access_token(data: dict) -> str:
+    to_encode = data.copy()
+
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_access_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload
+
+    except jwt.ExpiredSignatureError:
+        # Token đã hết hạn sử dụng
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Mã xác thực (Token) đã hết hạn. Vui lòng đăng nhập lại.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    except jwt.PyJWTError:
+        # Token bị sai chữ ký, sai cấu trúc, hoặc đã bị kẻ xấu chỉnh sửa dữ liệu
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Mã xác thực không hợp lệ hoặc đã bị thay đổi.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

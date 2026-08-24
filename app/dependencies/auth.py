@@ -14,8 +14,6 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(reusable_oauth2),
     db: Session = Depends(get_db)
 ) -> UsersModel:
-    token = credentials.credentials
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Không thể xác thực thông tin đăng nhập!",

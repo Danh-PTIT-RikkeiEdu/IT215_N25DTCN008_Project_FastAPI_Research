@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from app.db.database import Base, engine
 from app import models
 from app.core.responses import success_response, failure_response
-from app.routers import auth, users
+from app.routers import auth_router, user_router
 from app.core.config import settings
 
 
@@ -17,8 +17,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.include_router(auth.router, prefix=settings.API_V1_STR)
-app.include_router(users.router, prefix=settings.API_V1_STR)
+app.include_router(auth_router.router, prefix=settings.API_V1_STR)
+app.include_router(user_router.router, prefix=settings.API_V1_STR)
 
 
 @app.exception_handler(HTTPException)

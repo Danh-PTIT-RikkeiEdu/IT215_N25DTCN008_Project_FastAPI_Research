@@ -29,6 +29,7 @@ def create_research_project(db: Session, project_data: ResearchProjectCreate, ow
     db.refresh(new_research_project)
     return new_research_project
 
+
 def get_research_projects(db: Session, user_id: int, search_name: str | None):
     query = db.query(ResearchProjectsModel).outerjoin(
         ResearchMembersModel, ResearchProjectsModel.id == ResearchMembersModel.project_id
@@ -38,26 +39,36 @@ def get_research_projects(db: Session, user_id: int, search_name: str | None):
             ResearchMembersModel.user_id == user_id
         )
     )
+
     if search_name:
         query = query.filter(ResearchProjectsModel.name.ilike(f"%{search_name}%"))
     return query.all()
+
 
 def get_research_project_by_id(db: Session, project_id: int, user_id: int):
     project = db.query(ResearchProjectsModel).filter(ResearchProjectsModel.id == project_id).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Đề tài nghiên cứu không tồn tại")
     
-    # Kiểm tra BOLA: Chỉ owner hoặc member mới được xem
+    # Kiểm tra trả true false: Chỉ owner hoặc member mới được xem
     is_owner = project.owner_id == user_id
     is_member = db.query(ResearchMembersModel).filter(
         ResearchMembersModel.project_id == project_id,
         ResearchMembersModel.user_id == user_id
-    ).first()
+    ).first() # Có dữ liệu là True, ko có dữ liệu None là False
     
     if not is_owner and not is_member:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Chỉ thành viên đề tài nghiên cứu mới được xem")
         
     return project
+# Giải thích
+# Hàm này tìm kiếm dự án theo id dự án
+# dùng filter để tìm kiếm trong bảng dự án
+# nếu ko có trả về 6 trường kèm lỗi
+# nếu có xuống kiểm tra
+# is_owner trả về True khi dự án được tìm ra và owner_id trong dự án là user_id 
+# is_member trả về True khi tìm kiếm trong bảng thành viên của dự án với điều kiện id dự án có trong bảng và dựa trên điều kiện đó xem user_id có trùng với user_id người tìm hay không
+
 
 def update_research_project(db: Session, project_id: int, project_data: ResearchProjectUpdate, owner_id: int):
     project = db.query(ResearchProjectsModel).filter(ResearchProjectsModel.id == project_id).first()
@@ -74,7 +85,9 @@ def update_research_project(db: Session, project_id: int, project_data: Research
         
     db.commit()
     db.refresh(project)
+
     return project
+
 
 def delete_research_project(db: Session, project_id: int, owner_id: int):
     project = db.query(ResearchProjectsModel).filter(ResearchProjectsModel.id == project_id).first()
@@ -86,7 +99,9 @@ def delete_research_project(db: Session, project_id: int, owner_id: int):
         
     db.delete(project)
     db.commit()
+
     return True
+
 
 def add_member_to_project(db: Session, project_id: int, new_user_id: int, owner_id: int):
     project = db.query(ResearchProjectsModel).filter(ResearchProjectsModel.id == project_id).first()
@@ -102,9 +117,12 @@ def add_member_to_project(db: Session, project_id: int, new_user_id: int, owner_
         ResearchMembersModel.user_id == new_user_id
     ).first()
     
-    if existing_member or project.owner_id == new_user_id:
+    if existing_member:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User đã là thành viên của đề tài nghiên cứu")
-        
+
+    if project.owner_id == new_user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bạn đã là chủ sở hữu của đề tài nghiên cứu")
+    
     new_member = ResearchMembersModel(
         project_id=project_id,
         user_id=new_user_id,
@@ -113,7 +131,9 @@ def add_member_to_project(db: Session, project_id: int, new_user_id: int, owner_
     db.add(new_member)
     db.commit()
     db.refresh(new_member)
+
     return new_member
+
 
 def remove_member_from_project(db: Session, project_id: int, remove_user_id: int, owner_id: int):
     project = db.query(ResearchProjectsModel).filter(ResearchProjectsModel.id == project_id).first()
@@ -123,9 +143,9 @@ def remove_member_from_project(db: Session, project_id: int, remove_user_id: int
     if project.owner_id != owner_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Chỉ OWNER được xóa thành viên")
         
-    # Chặn xóa owner cuối cùng
+    # Chặn xóa owner
     if project.owner_id == remove_user_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Không được xóa owner cuối cùng")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Không được xóa chủ sở hữu")
         
     member = db.query(ResearchMembersModel).filter(
         ResearchMembersModel.project_id == project_id,
@@ -138,6 +158,14 @@ def remove_member_from_project(db: Session, project_id: int, remove_user_id: int
     db.delete(member)
     db.commit()
     return True
+# Giải thích
+# Tìm kiếm dự án dựa trên id dự án được truyền
+# Kiểm tra xem có phải chủ sở hữu để xóa thành viên không
+# Dựa trên dự án tìm  được tìm ra id chủ sở hữu và so sánh nó với id chủ sở hữu truyền vào (người login)
+# Nếu id chủ sở hữu của dự án = id muốn xóa báo lỗi
+# Tìm kiếm thành viên trong bảng member
+# Đk id dự án truyền vào có trong bảng thành viên và id thành viên cần xóa tồn tại cùng dòng dữ liệu đó
+
 
 def get_project_members(db: Session, project_id: int, current_user_id: int):
     project = db.query(ResearchProjectsModel).filter(ResearchProjectsModel.id == project_id).first()

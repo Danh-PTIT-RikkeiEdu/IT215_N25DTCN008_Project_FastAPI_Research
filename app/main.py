@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
 
 from app.db.database import Base, engine
-from app import models
 from app.core.responses import success_response, failure_response
-from app.routers import auth_router, user_router
+from app.routers import auth_router, user_router, research_project_router
 from app.core.config import settings
+from app.routers import auth_router, user_router, research_project_router, research_task_router
+
 
 
 Base.metadata.create_all(bind=engine)
@@ -19,7 +19,8 @@ app = FastAPI(
 
 app.include_router(auth_router.router, prefix=settings.API_V1_STR)
 app.include_router(user_router.router, prefix=settings.API_V1_STR)
-
+app.include_router(research_project_router.router, prefix=settings.API_V1_STR)
+app.include_router(research_task_router.router, prefix=settings.API_V1_STR)
 
 @app.exception_handler(HTTPException)
 def http_exception_handler(request: Request, exc: HTTPException):

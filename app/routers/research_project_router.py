@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Request, status, Query
 from sqlalchemy.orm import Session
@@ -18,13 +18,13 @@ from app.services.research_project_service import (
 from app.db.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.users import UsersModel
-from app.core.responses import success_response
+from app.core.responses import success_response, APIResponse
 
 
 router = APIRouter(prefix="/research-projects", tags=["Research Projects"])
 
 
-@router.post("", response_model=ResearchProjectResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=APIResponse, status_code=status.HTTP_201_CREATED)
 def create_project(
     research_project_data: ResearchProjectCreate, 
     request: Request, 
@@ -32,39 +32,60 @@ def create_project(
     db: Session = Depends(get_db)
 ):
     new_data = create_research_project(
-        db,
-        research_project_data,
-        owner_id=int(current_user.id)
+        db=db,
+        project_data=research_project_data,
+        owner_id=current_user.id
     )
+
     return success_response(
-        data=new_data,
+        data=ResearchProjectResponse.model_validate(new_data),
         message="Tạo đề tài nghiên cứu thành công",
         request=request,
         status_code=status.HTTP_201_CREATED
     )
 
-@router.get("", response_model=List[ResearchProjectResponse], status_code=status.HTTP_200_OK)
+
+@router.get("", response_model=APIResponse, status_code=status.HTTP_200_OK)
 def get_projects(
+    request: Request,
     search: Optional[str] = Query(None),
     current_user: UsersModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    projects = get_research_projects(
+    new_data = get_research_projects(
         db=db,
         user_id=int(current_user.id),
         search_name=search
     )
-    return projects
 
-@router.get("/{id}", response_model=ResearchProjectResponse, status_code=status.HTTP_200_OK)
+    return success_response(
+        data=[ResearchProjectResponse.model_validate(p) for p in new_data],
+        message="Lấy danh sách đề tài nghiên cứu thành công",
+        request=request
+    )
+
+
+@router.get("/{id}", response_model=APIResponse, status_code=status.HTTP_200_OK)
 def get_project_by_id(
+    request: Request,
     id: int,
     current_user: UsersModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return get_research_project_by_id(db, id, int(current_user.id))
+    new_data = get_research_project_by_id(
+        db=db, 
+        project_id=id, 
+        user_id=current_user.id
+    )
 
-@router.patch("/{id}", response_model=ResearchProjectResponse, status_code=status.HTTP_200_OK)
+    return success_response(
+        data=ResearchProjectResponse.model_validate(new_data),
+        message="Lấy thông tin đề tài nghiên cứu thành công",
+        request=request
+    )
+
+
+@router.patch("/{id}", response_model=APIResponse, status_code=status.HTTP_200_OK)
 def update_project(
     id: int,
     project_data: ResearchProjectUpdate,
@@ -72,28 +93,41 @@ def update_project(
     current_user: UsersModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    updated_project = update_research_project(db, id, project_data, int(current_user.id))
+    new_data = update_research_project(
+        db=db,
+        project_id=id,
+        project_data=project_data,
+        owner_id=current_user.id
+    )
+
     return success_response(
-        data=updated_project,
+        data=ResearchProjectResponse.model_validate(new_data),
         message="Cập nhật đề tài nghiên cứu thành công",
         request=request
     )
 
-@router.delete("/{id}", status_code=status.HTTP_200_OK)
+
+@router.delete("/{id}", response_model=APIResponse, status_code=status.HTTP_200_OK)
 def delete_project(
     id: int,
     request: Request,
     current_user: UsersModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    delete_research_project(db, id, int(current_user.id))
+    delete_research_project(
+        db=db,
+        project_id=id,
+        owner_id=current_user.id
+    )
+
     return success_response(
         data=None,
         message="Xóa đề tài nghiên cứu thành công",
         request=request
     )
 
-@router.post("/{id}/members", response_model=ResearchMemberResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post("/{id}/members", response_model=APIResponse, status_code=status.HTTP_201_CREATED)
 def add_member(
     id: int,
     member_data: ResearchMemberCreate,
@@ -101,15 +135,22 @@ def add_member(
     current_user: UsersModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    new_member = add_member_to_project(db, id, member_data.user_id, int(current_user.id))
+    new_data = add_member_to_project(
+        db=db,
+        project_id=id,
+        new_user_id=member_data.user_id,
+        owner_id=current_user.id
+    )
+
     return success_response(
-        data=new_member,
-        message="Thêm thành viên thành công",
+        data=ResearchMemberResponse.model_validate(new_data),
+        message="Thêm thành viên mới thành công",
         request=request,
         status_code=status.HTTP_201_CREATED
     )
 
-@router.delete("/{id}/members/{user_id}", status_code=status.HTTP_200_OK)
+
+@router.delete("/{id}/members/{user_id}", response_model=APIResponse, status_code=status.HTTP_200_OK)
 def remove_member(
     id: int,
     user_id: int,
@@ -117,17 +158,35 @@ def remove_member(
     current_user: UsersModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    remove_member_from_project(db, id, user_id, int(current_user.id))
+    remove_member_from_project(
+        db=db,
+        project_id=id,
+        remove_user_id=user_id,
+        owner_id=current_user.id
+    )
+
     return success_response(
         data=None,
         message="Xóa thành viên thành công",
         request=request
     )
 
-@router.get("/{id}/members", response_model=List[ResearchMemberResponse], status_code=status.HTTP_200_OK)
+
+@router.get("/{id}/members", response_model=APIResponse, status_code=status.HTTP_200_OK)
 def get_members(
+    request: Request,
     id: int,
     current_user: UsersModel = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return get_project_members(db, id, int(current_user.id))
+    new_data = get_project_members(
+        db=db,
+        project_id=id,
+        current_user_id=current_user.id
+    )
+
+    return success_response(
+        data=[ResearchMemberResponse.model_validate(m) for m in new_data],
+        message="Lấy danh sách thành viên thành công",
+        request=request
+    )

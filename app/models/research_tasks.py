@@ -29,7 +29,7 @@ class ResearchTasksModel(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Đề tài nghiên cứu 1–N Nhiệm vụ nghiên cứu
-    project_id = Column(Integer, ForeignKey("research_projects.id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("research_projects.id", ondelete="CASCADE"), nullable=False)
     research_project = relationship("ResearchProjectsModel", back_populates="research_tasks")
 
     # User 1–N Nhiệm vụ nghiên cứu (assignee).

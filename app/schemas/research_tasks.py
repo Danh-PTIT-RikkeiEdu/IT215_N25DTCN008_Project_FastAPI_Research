@@ -12,7 +12,6 @@ class ResearchTaskBase(BaseModel):
 
 
 class ResearchTaskCreate(ResearchTaskBase):
-    project_id: int
     assignee_id: int | None = None
 
 

@@ -4,7 +4,7 @@ from app.models.users import UserRole
 
 
 class UserBase(BaseModel):
-    email: str = Field(max_length=255)
+    email: EmailStr = Field(max_length=255)
     full_name: str = Field(max_length=100)
 
 

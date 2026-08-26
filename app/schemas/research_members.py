@@ -9,7 +9,6 @@ class ResearchMemberBase(BaseModel):
 
 
 class ResearchMemberCreate(ResearchMemberBase):
-    project_id: int
     user_id: int
 
 

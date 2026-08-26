@@ -93,14 +93,22 @@ def get_research_tasks(
     if search:
         query = query.filter(ResearchTasksModel.title.ilike(f"%{search}%"))
 
-    total = query.count()
+    total = query.count() # Đếm tổng số bản ghi đã tìm được
 
+    # Sắp xếp theo ngày tạo nhiệm vụ hoặc theo ngày đến hạn nhiệm vụ (deadline)
     sort_column = ResearchTasksModel.due_date if sort_by == "due_date" else ResearchTasksModel.created_at
+
+    # Mặc định là giảm dần (desc), Nếu truyền asc thì tăng dần dựa trên sort_column
     order_func = asc if order == "asc" else desc
+
+    # qua bên db là ORDER BY cột và dạng sắp xếp
     query = query.order_by(order_func(sort_column))
 
+    # offset(offset) bỏ qua n bảo ghi đầu
+    # limit(limit) lấy tối đa n bản ghi trong 1 trang 
     tasks = query.offset(offset).limit(limit).all()
 
+    # trả tuple, dựa vào tasks trả ndung và total tạo phân trang 
     return tasks, total
 
 
@@ -157,7 +165,6 @@ def update_research_task(db: Session, task_id: int, task_data: ResearchTaskUpdat
             )
 
     # Chỉ cập nhật trường nào có gửi giá trị lên, không đụng tới trường không gửi
-    # project_id không nằm trong danh sách dưới đây nên không thể đổi qua endpoint này
     if task_data.title is not None:
         task.title = task_data.title
     if task_data.description is not None:

@@ -8,13 +8,12 @@ class ResearchProjectBase(BaseModel):
 
 
 class ResearchProjectCreate(ResearchProjectBase):
-    owner_id: int
+    pass
 
 
 class ResearchProjectUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=150)
     description: str | None = None
-    owner_id: int | None = None
 
 
 class ResearchProjectResponse(ResearchProjectBase):

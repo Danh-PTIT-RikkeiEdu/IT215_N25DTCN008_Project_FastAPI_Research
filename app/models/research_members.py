@@ -17,7 +17,7 @@ class ResearchMembersModel(Base):
     joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # User N–N Đề tài nghiên cứu qua ResearchMember
-    project_id = Column(Integer, ForeignKey("research_projects.id"), primary_key=True)
+    project_id = Column(Integer, ForeignKey("research_projects.id", ondelete="CASCADE"), primary_key=True, )
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
 
     research_project = relationship("ResearchProjectsModel", back_populates="research_members")

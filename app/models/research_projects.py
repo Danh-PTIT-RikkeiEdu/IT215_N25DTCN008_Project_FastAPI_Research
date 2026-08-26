@@ -17,9 +17,9 @@ class ResearchProjectsModel(Base):
     user = relationship("UsersModel", back_populates="research_projects")
 
     # Đề tài nghiên cứu 1–N Nhiệm vụ nghiên cứu
-    research_tasks = relationship("ResearchTasksModel", back_populates="research_project")
+    research_tasks = relationship("ResearchTasksModel", back_populates="research_project", cascade="all, delete-orphan")
 
     # User N–N Đề tài nghiên cứu qua ResearchMember
-    research_members = relationship("ResearchMembersModel", back_populates="research_project")
+    research_members = relationship("ResearchMembersModel", back_populates="research_project", cascade="all, delete-orphan")
 
     
